@@ -50,4 +50,6 @@ Integration (Feature) tests run against a companion Craft test site via `markhuo
 
 ## License
 
-Proprietary. © Justin Holt.
+This plugin is licensed under the [Craft License](LICENSE.md) — the standard license for
+commercial Craft CMS plugins. A commercial license is required for use in a production environment.
+© 2026 Justin Holt.
