@@ -8,10 +8,12 @@ use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Elements;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
+use craft\web\UrlManager;
 use justinholtweb\owl\elements\Event;
 use justinholtweb\owl\models\Settings;
 use justinholtweb\owl\services\Calendars;
@@ -105,6 +107,16 @@ class Owl extends Plugin
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
             function(RegisterComponentTypesEvent $event) {
                 $event->types[] = Event::class;
+            }
+        );
+
+        // Control panel routes.
+        YiiEvent::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_CP_URL_RULES,
+            function(RegisterUrlRulesEvent $event) {
+                $event->rules['owl'] = 'owl/events/index';
+                $event->rules['owl/events'] = 'owl/events/index';
             }
         );
 

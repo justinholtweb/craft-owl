@@ -6,7 +6,6 @@ namespace justinholtweb\owl\elements;
 
 use Craft;
 use craft\base\Element;
-use craft\elements\db\ElementQueryInterface;
 use craft\elements\User;
 use craft\helpers\Db;
 use craft\helpers\UrlHelper;
@@ -35,6 +34,27 @@ class Event extends Element
     public bool $repeating = false;
 
     private ?Calendar $_calendar = null;
+
+    protected function defineRules(): array
+    {
+        return array_merge(parent::defineRules(), [
+            [['calendarId', 'startDate', 'endDate', 'timezone'], 'required'],
+            [['calendarId'], 'integer'],
+            [['timezone'], 'string'],
+            [['allDay'], 'boolean'],
+            [['endDate'], 'validateEndDate'],
+        ]);
+    }
+
+    /**
+     * An event may not end before it starts.
+     */
+    public function validateEndDate(): void
+    {
+        if ($this->startDate !== null && $this->endDate !== null && $this->endDate < $this->startDate) {
+            $this->addError('endDate', Craft::t('owl', 'The end date cannot be earlier than the start date.'));
+        }
+    }
 
     public static function displayName(): string
     {
@@ -81,7 +101,7 @@ class Event extends Element
         return true;
     }
 
-    public static function find(): ElementQueryInterface
+    public static function find(): EventQuery
     {
         return new EventQuery(static::class);
     }

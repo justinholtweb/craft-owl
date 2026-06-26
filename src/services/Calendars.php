@@ -47,6 +47,14 @@ class Calendars extends Component
         return null;
     }
 
+    /**
+     * Clears the in-memory calendar cache (call after creating/updating calendars mid-request).
+     */
+    public function refresh(): void
+    {
+        $this->_calendars = null;
+    }
+
     public function getCalendarByHandle(string $handle): ?Calendar
     {
         foreach ($this->getAllCalendars() as $calendar) {
