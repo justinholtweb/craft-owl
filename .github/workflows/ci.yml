@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, intl, pdo, pdo_mysql
+          coverage: none
+
+      - name: Install dependencies
+        # Composer plugins are disabled because the craft-plugin installer expects a host
+        # Craft project; the unit suite is framework-agnostic and only needs vendor + autoload.
+        run: composer install --no-plugins --no-interaction --prefer-dist
+
+      - name: Unit tests (recurrence engine)
+        run: vendor/bin/pest --testsuite=Unit
+
+  static-analysis:
+    name: Static analysis & coding standard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-plugins --no-interaction --prefer-dist
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: ECS
+        run: vendor/bin/ecs check --no-progress-bar

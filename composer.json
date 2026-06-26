@@ -1,0 +1,66 @@
+{
+    "name": "justinholtweb/craft-owl",
+    "description": "A comprehensive events and calendar plugin for Craft CMS 5 with recurrence, multisite, ICS feeds, and Commerce ticketing.",
+    "version": "1.0.0-alpha.1",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "homepage": "https://github.com/justinholtweb/craft-owl",
+    "support": {
+        "email": "justin@justinholt.com",
+        "issues": "https://github.com/justinholtweb/craft-owl/issues",
+        "docs": "https://craft-owl.justinholt.com/docs"
+    },
+    "keywords": ["craft", "cms", "craftcms", "craft-plugin", "events", "calendar", "recurrence", "ics", "commerce", "tickets"],
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*",
+        "craftcms/cms": "^5.6.0",
+        "rlanvin/php-rrule": "^2.5",
+        "spatie/icalendar-generator": "^3.0"
+    },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main",
+        "craftcms/rector": "dev-main",
+        "pestphp/pest": "^3.5"
+    },
+    "suggest": {
+        "craftcms/commerce": "Required for the Pro edition's ticketing features (^5.0)."
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\owl\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "justinholtweb\\owl\\tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "handle": "owl",
+        "name": "Owl",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholt.com",
+        "documentationUrl": "https://craft-owl.justinholt.com/docs",
+        "class": "justinholtweb\\owl\\Owl",
+        "editions": ["lite", "pro"]
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true,
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "pest",
+        "test-unit": "pest --group=unit",
+        "phpstan": "phpstan analyse",
+        "ecs": "ecs check --ansi",
+        "ecs-fix": "ecs check --fix --ansi"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

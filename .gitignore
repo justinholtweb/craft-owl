@@ -1,0 +1,13 @@
+/vendor
+/.ddev/.gitignore
+/.ddev/**/*.example
+/composer.lock
+.phpunit.cache
+.phpunit.result.cache
+.DS_Store
+/.idea
+/.vscode
+*.log
+
+# Harness/session state
+.claude/scheduled_tasks.lock
