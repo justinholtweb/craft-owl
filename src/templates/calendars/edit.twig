@@ -53,6 +53,32 @@
 
     <hr>
 
+    <h2>{{ 'Front-end URLs'|t('owl') }}</h2>
+
+    {{ forms.textField({
+        label: 'Event URI Format'|t('owl'),
+        instructions: 'The URI format for events in this calendar, e.g. `events/{slug}`. Leave blank for no front-end URL.'|t('owl'),
+        id: 'uriFormat',
+        name: 'uriFormat',
+        class: 'code',
+        value: calendar.uriFormat,
+        errors: calendar.getErrors('uriFormat'),
+        placeholder: 'events/{slug}',
+    }) }}
+
+    {{ forms.textField({
+        label: 'Template'|t('owl'),
+        instructions: 'The template that renders an event in this calendar.'|t('owl'),
+        id: 'template',
+        name: 'template',
+        class: 'code',
+        value: calendar.template,
+        errors: calendar.getErrors('template'),
+        placeholder: 'events/_entry',
+    }) }}
+
+    <hr>
+
     <h2>{{ 'Event Fields'|t('owl') }}</h2>
     {{ forms.fieldLayoutDesignerField({
         fieldLayout: calendar.fieldLayout,

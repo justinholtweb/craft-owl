@@ -41,6 +41,8 @@ class Install extends Migration
             'color' => $this->string(10),
             'fieldLayoutId' => $this->integer(),
             'hasTickets' => $this->boolean()->notNull()->defaultValue(false),
+            'uriFormat' => $this->string(),
+            'template' => $this->string(),
             'sortOrder' => $this->smallInteger()->unsigned(),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),

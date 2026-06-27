@@ -13,6 +13,8 @@ use craft\db\ActiveRecord;
  * @property string|null $color
  * @property int|null $fieldLayoutId
  * @property bool $hasTickets
+ * @property string|null $uriFormat
+ * @property string|null $template
  * @property int|null $sortOrder
  * @property string $uid
  */

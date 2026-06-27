@@ -198,7 +198,26 @@ class Event extends Element
 
     public function getUriFormat(): ?string
     {
-        return $this->getCalendar() !== null ? 'events/{slug}' : null;
+        $calendar = $this->getCalendar();
+
+        return $calendar !== null && $calendar->hasUrls() ? $calendar->uriFormat : null;
+    }
+
+    protected function route(): array|string|null
+    {
+        $calendar = $this->getCalendar();
+
+        if ($calendar === null || !$calendar->hasUrls() || $this->getStatus() !== self::STATUS_ENABLED) {
+            return null;
+        }
+
+        return [
+            'templates/render',
+            [
+                'template' => (string)$calendar->template,
+                'variables' => ['event' => $this],
+            ],
+        ];
     }
 
     protected function previewTargets(): array

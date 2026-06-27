@@ -7,10 +7,12 @@ namespace justinholtweb\owl;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\events\RebuildConfigEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Elements;
+use craft\services\ProjectConfig;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
@@ -40,7 +42,7 @@ class Owl extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.0.1';
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
 
@@ -70,6 +72,7 @@ class Owl extends Plugin
         parent::init();
 
         $this->attachEventHandlers();
+        $this->registerProjectConfigHandlers();
     }
 
     /**
@@ -133,6 +136,24 @@ class Owl extends Plugin
             'plugin' => $this,
             'settings' => $this->getSettings(),
         ]);
+    }
+
+    private function registerProjectConfigHandlers(): void
+    {
+        $calendars = $this->calendars;
+
+        Craft::$app->getProjectConfig()
+            ->onAdd(Calendars::CONFIG_CALENDARS_KEY . '.{uid}', [$calendars, 'handleChangedCalendar'])
+            ->onUpdate(Calendars::CONFIG_CALENDARS_KEY . '.{uid}', [$calendars, 'handleChangedCalendar'])
+            ->onRemove(Calendars::CONFIG_CALENDARS_KEY . '.{uid}', [$calendars, 'handleDeletedCalendar']);
+
+        YiiEvent::on(
+            ProjectConfig::class,
+            ProjectConfig::EVENT_REBUILD,
+            function(RebuildConfigEvent $event) use ($calendars) {
+                $event->config[Calendars::CONFIG_CALENDARS_KEY] = $calendars->rebuildProjectConfig();
+            }
+        );
     }
 
     private function attachEventHandlers(): void

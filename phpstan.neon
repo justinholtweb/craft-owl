@@ -7,3 +7,7 @@ parameters:
         - src
     excludePaths:
         - src/templates/*
+    ignoreErrors:
+        # Craft migrations accept a ColumnSchemaBuilder for addColumn()'s $type at runtime,
+        # but Yii's inherited signature types it as string.
+        - '#Parameter \#3 \$type of method yii\\db\\Migration::addColumn\(\) expects string, yii\\db\\ColumnSchemaBuilder given#'

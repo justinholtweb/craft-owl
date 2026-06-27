@@ -70,6 +70,8 @@ class CalendarsController extends Controller
         $calendar->handle = $request->getBodyParam('handle');
         $calendar->color = $request->getBodyParam('color') ?: null;
         $calendar->hasTickets = (bool)$request->getBodyParam('hasTickets');
+        $calendar->uriFormat = $request->getBodyParam('uriFormat') ?: null;
+        $calendar->template = $request->getBodyParam('template') ?: null;
 
         $fieldLayout = Craft::$app->getFields()->assembleLayoutFromPost();
         $fieldLayout->type = \justinholtweb\owl\elements\Event::class;

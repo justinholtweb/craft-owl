@@ -1,14 +1,14 @@
 {
     "name": "justinholtweb/craft-owl",
     "description": "A comprehensive events and calendar plugin for Craft CMS 5 with recurrence, multisite, ICS feeds, and Commerce ticketing.",
-    "version": "1.0.0-alpha.1",
+    "version": "5.0.0",
     "type": "craft-plugin",
     "license": "proprietary",
-    "homepage": "https://github.com/justinholtweb/craft-owl",
+    "homepage": "https://craft-owl.com",
     "support": {
         "email": "justin@justinholt.com",
         "issues": "https://github.com/justinholtweb/craft-owl/issues",
-        "docs": "https://craft-owl.justinholt.com/docs"
+        "docs": "https://craft-owl.com/docs"
     },
     "keywords": ["craft", "cms", "craftcms", "craft-plugin", "events", "calendar", "recurrence", "ics", "commerce", "tickets"],
     "require": {
@@ -42,7 +42,7 @@
         "name": "Owl",
         "developer": "Justin Holt",
         "developerUrl": "https://justinholt.com",
-        "documentationUrl": "https://craft-owl.justinholt.com/docs",
+        "documentationUrl": "https://craft-owl.com/docs",
         "class": "justinholtweb\\owl\\Owl",
         "editions": ["lite", "pro"]
     },
