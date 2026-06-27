@@ -62,6 +62,18 @@ Subscribe to or download ICS:
 /owl/event/<id>.ics          # a single event
 ```
 
+## Maintenance
+
+Occurrences are materialised up to a rolling horizon (default 24 months). Run the regenerate
+command from a daily cron so open-ended recurrence rules keep extending forward:
+
+```cron
+0 3 * * * cd /path/to/project && php craft owl/maintenance/regenerate >> /dev/null 2>&1
+```
+
+Add `--queue` to push the work onto Craft's queue instead of running it inline (recommended for
+sites with many recurring events).
+
 ## Development
 
 PHP and Composer run inside DDEV:
