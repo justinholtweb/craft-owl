@@ -6,13 +6,18 @@ namespace justinholtweb\owl\services;
 
 use Craft;
 use craft\base\Component;
+use craft\db\Query;
+use craft\db\Table;
 use craft\helpers\Db;
 use craft\helpers\StringHelper;
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeInterface;
 use DateTimeZone;
 use justinholtweb\owl\elements\Event;
 use justinholtweb\owl\Owl;
+use justinholtweb\owl\records\CalendarRecord;
+use justinholtweb\owl\records\EventRecord;
 use justinholtweb\owl\records\OccurrenceRecord;
 
 /**
@@ -71,6 +76,61 @@ class Occurrences extends Component
             $transaction->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Returns enabled, live occurrences overlapping a date window, joined to their event and
+     * calendar. Drives the front-end calendar JSON feed and ICS export.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getOccurrencesInRange(
+        DateTimeInterface $rangeStart,
+        DateTimeInterface $rangeEnd,
+        ?int $siteId = null,
+        ?array $calendarIds = null,
+        ?int $eventId = null,
+    ): array {
+        $siteId ??= Craft::$app->getSites()->getCurrentSite()->id;
+
+        $query = (new Query())
+            ->select([
+                'eventId' => 'o.eventId',
+                'startDate' => 'o.startDate',
+                'endDate' => 'o.endDate',
+                'allDay' => 'o.allDay',
+                'calendarId' => 'ev.calendarId',
+                'title' => 'es.title',
+                'uri' => 'es.uri',
+                'color' => 'cal.color',
+                'calendarHandle' => 'cal.handle',
+            ])
+            ->from(['o' => OccurrenceRecord::tableName()])
+            ->innerJoin(['ev' => EventRecord::tableName()], '[[ev.id]] = [[o.eventId]]')
+            ->innerJoin(['el' => Table::ELEMENTS], '[[el.id]] = [[ev.id]]')
+            ->innerJoin(
+                ['es' => Table::ELEMENTS_SITES],
+                ['and', '[[es.elementId]] = [[ev.id]]', ['es.siteId' => $siteId]],
+            )
+            ->innerJoin(['cal' => CalendarRecord::tableName()], '[[cal.id]] = [[ev.calendarId]]')
+            ->where([
+                'el.enabled' => true,
+                'es.enabled' => true,
+                'el.dateDeleted' => null,
+            ])
+            ->andWhere(['<', 'o.startDate', Db::prepareDateForDb($rangeEnd)])
+            ->andWhere(['>', 'o.endDate', Db::prepareDateForDb($rangeStart)])
+            ->orderBy(['o.startDate' => SORT_ASC]);
+
+        if ($calendarIds !== null) {
+            $query->andWhere(['ev.calendarId' => $calendarIds]);
+        }
+
+        if ($eventId !== null) {
+            $query->andWhere(['o.eventId' => $eventId]);
+        }
+
+        return $query->all();
     }
 
     private function windowStart(Event $event): DateTimeImmutable

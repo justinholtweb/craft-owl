@@ -50,6 +50,7 @@
         on: event.allDay,
     }) }}
 
+    {% set eventTz = event.timezone ?: craft.app.getTimeZone() %}
     <div class="flex">
         <div>
             {{ forms.dateTimeField({
@@ -57,6 +58,7 @@
                 id: 'startDate',
                 name: 'startDate',
                 value: event.startDate,
+                timeZone: eventTz,
                 errors: event.getErrors('startDate'),
                 required: true,
             }) }}
@@ -67,6 +69,7 @@
                 id: 'endDate',
                 name: 'endDate',
                 value: event.endDate,
+                timeZone: eventTz,
                 errors: event.getErrors('endDate'),
                 required: true,
             }) }}

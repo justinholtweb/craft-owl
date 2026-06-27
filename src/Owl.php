@@ -18,6 +18,7 @@ use justinholtweb\owl\elements\Event;
 use justinholtweb\owl\models\Settings;
 use justinholtweb\owl\services\Calendars;
 use justinholtweb\owl\services\Events;
+use justinholtweb\owl\services\Ics;
 use justinholtweb\owl\services\Occurrences;
 use justinholtweb\owl\services\Recurrence;
 use justinholtweb\owl\web\twig\CraftVariableBehavior;
@@ -30,6 +31,7 @@ use yii\base\Event as YiiEvent;
  * @method Settings getSettings()
  * @property-read Calendars $calendars
  * @property-read Events $events
+ * @property-read Ics $ics
  * @property-read Occurrences $occurrences
  * @property-read Recurrence $recurrence
  */
@@ -56,6 +58,7 @@ class Owl extends Plugin
             'components' => [
                 'calendars' => Calendars::class,
                 'events' => Events::class,
+                'ics' => Ics::class,
                 'occurrences' => Occurrences::class,
                 'recurrence' => Recurrence::class,
             ],
@@ -155,6 +158,17 @@ class Owl extends Plugin
                 $event->rules['owl/calendars'] = 'owl/calendars/index';
                 $event->rules['owl/calendars/new'] = 'owl/calendars/edit';
                 $event->rules['owl/calendars/<calendarId:\d+>'] = 'owl/calendars/edit';
+            }
+        );
+
+        // Front-end feeds (FullCalendar JSON + ICS).
+        YiiEvent::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            function(RegisterUrlRulesEvent $event) {
+                $event->rules['owl/events.json'] = 'owl/feed/events';
+                $event->rules['owl/calendar/<handle:{handle}>.ics'] = 'owl/feed/calendar';
+                $event->rules['owl/event/<eventId:\d+>.ics'] = 'owl/feed/event';
             }
         );
 

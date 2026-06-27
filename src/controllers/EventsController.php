@@ -76,12 +76,14 @@ class EventsController extends Controller
             $event = new Event();
         }
 
+        $timezone = $request->getBodyParam('timezone') ?: Craft::$app->getTimeZone();
+
         $event->title = $request->getBodyParam('title');
         $event->calendarId = (int)$request->getBodyParam('calendarId') ?: null;
-        $event->timezone = $request->getBodyParam('timezone') ?: Craft::$app->getTimeZone();
+        $event->timezone = $timezone;
         $event->allDay = (bool)$request->getBodyParam('allDay');
-        $event->startDate = DateTimeHelper::toDateTime($request->getBodyParam('startDate')) ?: null;
-        $event->endDate = DateTimeHelper::toDateTime($request->getBodyParam('endDate')) ?: null;
+        $event->startDate = $this->toEventDate($request->getBodyParam('startDate'), $timezone);
+        $event->endDate = $this->toEventDate($request->getBodyParam('endDate'), $timezone);
         $event->rrule = trim((string)$request->getBodyParam('rrule')) ?: null;
 
         if (!Craft::$app->getElements()->saveElement($event)) {
@@ -94,5 +96,22 @@ class EventsController extends Controller
         Craft::$app->getSession()->setNotice(Craft::t('owl', 'Event saved.'));
 
         return $this->redirectToPostedUrl($event);
+    }
+
+    /**
+     * Builds a DateTime from a posted date field, interpreting the entered wall-clock time in the
+     * event's own timezone rather than the system timezone (Craft's date field always submits the
+     * system tz in its hidden param, so we override it here).
+     */
+    private function toEventDate(mixed $value, string $timezone): ?\DateTime
+    {
+        if (is_array($value)) {
+            if (($value['date'] ?? '') === '' && ($value['time'] ?? '') === '') {
+                return null;
+            }
+            $value['timezone'] = $timezone;
+        }
+
+        return DateTimeHelper::toDateTime($value) ?: null;
     }
 }
