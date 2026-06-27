@@ -62,6 +62,22 @@ Subscribe to or download ICS:
 /owl/event/<id>.ics          # a single event
 ```
 
+## Tickets (Pro)
+
+With the **Pro** edition and Craft Commerce installed, events can sell tickets. Enable "Sell
+tickets" on a calendar, then **Manage tickets** on an event to add ticket types (name, price,
+optional capacity). Each ticket is a Commerce purchasable:
+
+```twig
+{% for ticket in craft.owl.tickets.getTicketsForEvent(event.id) %}
+    {{ ticket.ticketName }} — {{ ticket.price|commerceCurrency(ticket.store.currency) }}
+    {% if ticket.remaining is not null %}({{ ticket.remaining }} left){% endif %}
+{% endfor %}
+```
+
+Capacity is enforced by Owl: a sold-out ticket reports `getIsAvailable()` as `false`, and the sold
+count is incremented transactionally when an order completes.
+
 ## Maintenance
 
 Occurrences are materialised up to a rolling horizon (default 24 months). Run the regenerate

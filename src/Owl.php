@@ -21,6 +21,7 @@ use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use justinholtweb\owl\elements\Event;
+use justinholtweb\owl\elements\Ticket;
 use justinholtweb\owl\gql\EventQueries;
 use justinholtweb\owl\gql\interfaces\EventInterface;
 use justinholtweb\owl\models\Settings;
@@ -29,6 +30,7 @@ use justinholtweb\owl\services\Events;
 use justinholtweb\owl\services\Ics;
 use justinholtweb\owl\services\Occurrences;
 use justinholtweb\owl\services\Recurrence;
+use justinholtweb\owl\services\Tickets;
 use justinholtweb\owl\web\twig\CraftVariableBehavior;
 use yii\base\Event as YiiEvent;
 
@@ -42,13 +44,14 @@ use yii\base\Event as YiiEvent;
  * @property-read Ics $ics
  * @property-read Occurrences $occurrences
  * @property-read Recurrence $recurrence
+ * @property-read Tickets $tickets
  */
 class Owl extends Plugin
 {
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.0.1';
+    public string $schemaVersion = '1.0.2';
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
 
@@ -69,6 +72,7 @@ class Owl extends Plugin
                 'ics' => Ics::class,
                 'occurrences' => Occurrences::class,
                 'recurrence' => Recurrence::class,
+                'tickets' => Tickets::class,
             ],
         ];
     }
@@ -164,20 +168,36 @@ class Owl extends Plugin
 
     private function attachEventHandlers(): void
     {
-        // Register the Event element type.
+        $commerceInstalled = Craft::$app->getPlugins()->isPluginInstalled('commerce');
+
+        // Register the Event element type (and the Ticket purchasable element when Commerce exists).
         YiiEvent::on(
             Elements::class,
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
-            function(RegisterComponentTypesEvent $event) {
+            function(RegisterComponentTypesEvent $event) use ($commerceInstalled) {
                 $event->types[] = Event::class;
+                if ($commerceInstalled) {
+                    $event->types[] = Ticket::class;
+                }
             }
         );
+
+        // Register the Ticket purchasable type with Commerce.
+        if ($commerceInstalled) {
+            YiiEvent::on(
+                \craft\commerce\services\Purchasables::class,
+                \craft\commerce\services\Purchasables::EVENT_REGISTER_PURCHASABLE_ELEMENT_TYPES,
+                function(RegisterComponentTypesEvent $event) {
+                    $event->types[] = Ticket::class;
+                }
+            );
+        }
 
         // Control panel routes.
         YiiEvent::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
-            function(RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event) use ($commerceInstalled) {
                 $event->rules['owl'] = 'owl/events/index';
                 $event->rules['owl/events'] = 'owl/events/index';
                 $event->rules['owl/events/new'] = 'owl/events/edit';
@@ -185,6 +205,10 @@ class Owl extends Plugin
                 $event->rules['owl/calendars'] = 'owl/calendars/index';
                 $event->rules['owl/calendars/new'] = 'owl/calendars/edit';
                 $event->rules['owl/calendars/<calendarId:\d+>'] = 'owl/calendars/edit';
+
+                if ($commerceInstalled) {
+                    $event->rules['owl/events/<eventId:\d+>/tickets'] = 'owl/tickets/index';
+                }
             }
         );
 

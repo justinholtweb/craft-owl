@@ -100,4 +100,9 @@
         {% set occurrences = craft.owl.occurrenceCount(event) %}
         <p class="light">{{ '{n} occurrences materialised.'|t('owl', { n: occurrences }) }}</p>
     {% endif %}
+
+    {% if ticketingEnabled %}
+        <hr>
+        <a href="{{ url('owl/events/' ~ event.id ~ '/tickets') }}" class="btn">{{ 'Manage tickets'|t('owl') }}</a>
+    {% endif %}
 {% endblock %}

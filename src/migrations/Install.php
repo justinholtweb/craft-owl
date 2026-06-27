@@ -24,6 +24,7 @@ class Install extends Migration
     public function safeDown(): bool
     {
         // Drop in dependency order (children first).
+        $this->dropTableIfExists('{{%owl_tickets}}');
         $this->dropTableIfExists('{{%owl_exceptions}}');
         $this->dropTableIfExists('{{%owl_occurrences}}');
         $this->dropTableIfExists('{{%owl_events}}');
@@ -87,6 +88,18 @@ class Install extends Migration
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),
         ]);
+
+        $this->createTable('{{%owl_tickets}}', [
+            'id' => $this->integer()->notNull(),
+            'eventId' => $this->integer()->notNull(),
+            'ticketName' => $this->string()->notNull(),
+            'capacity' => $this->integer(),
+            'sold' => $this->integer()->notNull()->defaultValue(0),
+            'dateCreated' => $this->dateTime()->notNull(),
+            'dateUpdated' => $this->dateTime()->notNull(),
+            'uid' => $this->uid(),
+            'PRIMARY KEY([[id]])',
+        ]);
     }
 
     private function createIndexes(): void
@@ -97,6 +110,7 @@ class Install extends Migration
         $this->createIndex(null, '{{%owl_occurrences}}', ['startDate', 'endDate'], false);
         $this->createIndex(null, '{{%owl_occurrences}}', ['eventId'], false);
         $this->createIndex(null, '{{%owl_exceptions}}', ['eventId', 'date'], true);
+        $this->createIndex(null, '{{%owl_tickets}}', ['eventId'], false);
     }
 
     private function addForeignKeys(): void
@@ -106,5 +120,7 @@ class Install extends Migration
         $this->addForeignKey(null, '{{%owl_events}}', ['calendarId'], '{{%owl_calendars}}', ['id'], 'CASCADE');
         $this->addForeignKey(null, '{{%owl_occurrences}}', ['eventId'], '{{%owl_events}}', ['id'], 'CASCADE');
         $this->addForeignKey(null, '{{%owl_exceptions}}', ['eventId'], '{{%owl_events}}', ['id'], 'CASCADE');
+        $this->addForeignKey(null, '{{%owl_tickets}}', ['id'], Table::ELEMENTS, ['id'], 'CASCADE');
+        $this->addForeignKey(null, '{{%owl_tickets}}', ['eventId'], '{{%owl_events}}', ['id'], 'CASCADE');
     }
 }

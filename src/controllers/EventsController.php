@@ -50,11 +50,16 @@ class EventsController extends Controller
 
         $isNew = !$event->id;
 
+        $ticketingEnabled = !$isNew
+            && Owl::getInstance()->commerceAvailable()
+            && ($event->getCalendar()?->hasTickets ?? false);
+
         return $this->renderTemplate('owl/events/edit', [
             'event' => $event,
             'isNew' => $isNew,
             'calendars' => $calendars,
             'calendarOptions' => $calendarOptions,
+            'ticketingEnabled' => $ticketingEnabled,
             'title' => $isNew ? Craft::t('owl', 'New Event') : (string)$event->title,
         ]);
     }

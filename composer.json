@@ -19,6 +19,7 @@
         "spatie/icalendar-generator": "^3.0"
     },
     "require-dev": {
+        "craftcms/commerce": "^5.0",
         "craftcms/ecs": "dev-main",
         "craftcms/phpstan": "dev-main",
         "craftcms/rector": "dev-main",

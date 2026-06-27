@@ -48,6 +48,7 @@ class TestController extends Controller
             $this->testDisabledEventExcludedFromFeed($event);
             $this->testGraphql();
             $this->testIcsFeed($event);
+            $this->testCommerceTicketing($event);
         } finally {
             $this->cleanup();
         }
@@ -252,6 +253,43 @@ class TestController extends Controller
         $this->assert(substr_count($ics, 'BEGIN:VEVENT') === 3, 'ICS feed has one VEVENT per occurrence');
     }
 
+    private function testCommerceTicketing(Event $event): void
+    {
+        if (!Craft::$app->getPlugins()->isPluginInstalled('commerce')) {
+            $this->stdout("  - Commerce not installed; skipping ticketing checks.\n");
+            return;
+        }
+
+        $ticket = Owl::getInstance()->tickets->createTicket($event, 'General Admission', 25.0, 2);
+        $this->assert($ticket->id !== null, 'Ticket saves as a Commerce purchasable');
+
+        $purchasables = \craft\commerce\Plugin::getInstance()->getPurchasables();
+        $this->assert(
+            in_array(\justinholtweb\owl\elements\Ticket::class, $purchasables->getAllPurchasableElementTypes(), true),
+            'Ticket is a registered Commerce purchasable type',
+        );
+        $this->assert(
+            $purchasables->getPurchasableById((int)$ticket->id) instanceof \justinholtweb\owl\elements\Ticket,
+            'Commerce resolves the ticket by id',
+        );
+
+        $price = (float)$ticket->getPrice();
+        $this->assert(abs($price - 25.0) < 0.001, "Ticket price is 25 (got {$price})");
+        $this->assert($ticket->getSku() !== '', 'Ticket has a SKU');
+        $this->assert($ticket->getIsAvailable(), 'New ticket with capacity is available');
+        $this->assert($ticket->getRemaining() === 2, 'Ticket reports 2 remaining (got ' . var_export($ticket->getRemaining(), true) . ')');
+
+        // Simulate completing an order for both tickets.
+        $lineItem = new \craft\commerce\models\LineItem();
+        $lineItem->qty = 2;
+        $ticket->afterOrderComplete(new \craft\commerce\elements\Order(), $lineItem);
+
+        $reloaded = Owl::getInstance()->tickets->getTicketById((int)$ticket->id);
+        $this->assert($reloaded !== null && $reloaded->sold === 2, 'Sold count increments to 2 after order completion');
+        $this->assert($reloaded !== null && $reloaded->getRemaining() === 0, 'Sold-out ticket reports 0 remaining');
+        $this->assert($reloaded !== null && !$reloaded->getIsAvailable(), 'Sold-out ticket is no longer available');
+    }
+
     private function assert(bool $condition, string $label): void
     {
         if ($condition) {
@@ -271,7 +309,14 @@ class TestController extends Controller
             return;
         }
 
+        $commerce = Craft::$app->getPlugins()->isPluginInstalled('commerce');
+
         foreach (Event::find()->calendarId($record->id)->status(null)->all() as $event) {
+            if ($commerce) {
+                foreach (Owl::getInstance()->tickets->getTicketsForEvent((int)$event->id) as $ticket) {
+                    Craft::$app->getElements()->deleteElement($ticket, true);
+                }
+            }
             Craft::$app->getElements()->deleteElement($event, true);
         }
 
