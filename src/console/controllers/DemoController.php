@@ -7,12 +7,13 @@ namespace justinholtweb\owl\console\controllers;
 use Craft;
 use craft\console\Controller;
 use craft\helpers\Console;
+use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
 use DateTime;
 use DateTimeZone;
 use justinholtweb\owl\elements\Event;
+use justinholtweb\owl\models\Calendar;
 use justinholtweb\owl\Owl;
-use justinholtweb\owl\records\CalendarRecord;
 use justinholtweb\owl\records\OccurrenceRecord;
 use yii\console\ExitCode;
 
@@ -88,22 +89,41 @@ class DemoController extends Controller
         return ExitCode::OK;
     }
 
-    private function ensureCalendar(string $handle, string $name): CalendarRecord
+    /**
+     * Copies Owl's demo front-end templates into the project's templates/owl/ directory.
+     *
+     *   php craft owl/demo/install-templates
+     */
+    public function actionInstallTemplates(): int
     {
-        $record = CalendarRecord::findOne(['handle' => $handle]);
+        $source = Owl::getInstance()->getBasePath() . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . '_demo';
+        $dest = Craft::$app->getPath()->getSiteTemplatesPath() . DIRECTORY_SEPARATOR . 'owl';
 
-        if ($record === null) {
-            $record = new CalendarRecord();
-            $record->name = $name;
-            $record->handle = $handle;
-            $record->color = '#7C5CFF';
-            $record->hasTickets = false;
-            $record->save(false);
+        FileHelper::copyDirectory($source, $dest);
 
-            // Refresh the service cache so the new calendar resolves on this request.
-            Owl::getInstance()->calendars->refresh();
+        $this->stdout("Installed demo templates to {$dest}\n", Console::FG_GREEN);
+        $this->stdout("View them at /owl/calendar and /owl/upcoming.\n");
+
+        return ExitCode::OK;
+    }
+
+    private function ensureCalendar(string $handle, string $name): Calendar
+    {
+        $calendar = Owl::getInstance()->calendars->getCalendarByHandle($handle);
+
+        if ($calendar === null) {
+            $calendar = new Calendar();
+            $calendar->name = $name;
+            $calendar->handle = $handle;
+            $calendar->color = '#7C5CFF';
         }
 
-        return $record;
+        // Give the demo calendar front-end URLs so event detail pages render.
+        $calendar->uriFormat = 'events/{slug}';
+        $calendar->template = 'owl/_event';
+        Owl::getInstance()->calendars->save($calendar);
+        Owl::getInstance()->calendars->refresh();
+
+        return $calendar;
     }
 }

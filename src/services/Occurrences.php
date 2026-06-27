@@ -99,6 +99,7 @@ class Occurrences extends Component
                 'startDate' => 'o.startDate',
                 'endDate' => 'o.endDate',
                 'allDay' => 'o.allDay',
+                'timezone' => 'ev.timezone',
                 'calendarId' => 'ev.calendarId',
                 'title' => 'es.title',
                 'uri' => 'es.uri',
