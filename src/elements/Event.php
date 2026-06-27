@@ -154,6 +154,22 @@ class Event extends Element
         return ['calendar', 'startDate', 'endDate', 'repeating'];
     }
 
+    protected static function defineSearchableAttributes(): array
+    {
+        return ['title'];
+    }
+
+    protected function attributeHtml(string $attribute): string
+    {
+        return match ($attribute) {
+            'calendar' => $this->getCalendar()?->name ?? '—',
+            'repeating' => $this->repeating
+                ? '<span data-icon="refresh" title="' . Craft::t('owl', 'Repeating') . '"></span>'
+                : '—',
+            default => parent::attributeHtml($attribute),
+        };
+    }
+
     public function datetimeAttributes(): array
     {
         return array_merge(parent::datetimeAttributes(), ['startDate', 'endDate']);

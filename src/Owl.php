@@ -86,6 +86,39 @@ class Owl extends Plugin
             && Craft::$app->getPlugins()->isPluginInstalled('commerce');
     }
 
+    public function getCpNavItem(): ?array
+    {
+        $nav = parent::getCpNavItem();
+        $nav['label'] = Craft::t('owl', 'Owl');
+        $nav['url'] = 'owl/events';
+        $nav['subnav'] = [];
+
+        $user = Craft::$app->getUser();
+
+        if ($user->checkPermission('owl-manageEvents')) {
+            $nav['subnav']['events'] = [
+                'label' => Craft::t('owl', 'Events'),
+                'url' => 'owl/events',
+            ];
+        }
+
+        if ($user->checkPermission('owl-manageCalendars')) {
+            $nav['subnav']['calendars'] = [
+                'label' => Craft::t('owl', 'Calendars'),
+                'url' => 'owl/calendars',
+            ];
+        }
+
+        if ($user->getIsAdmin()) {
+            $nav['subnav']['settings'] = [
+                'label' => Craft::t('owl', 'Settings'),
+                'url' => 'settings/plugins/owl',
+            ];
+        }
+
+        return $nav;
+    }
+
     protected function createSettingsModel(): ?Model
     {
         return new Settings();
@@ -117,6 +150,11 @@ class Owl extends Plugin
             function(RegisterUrlRulesEvent $event) {
                 $event->rules['owl'] = 'owl/events/index';
                 $event->rules['owl/events'] = 'owl/events/index';
+                $event->rules['owl/events/new'] = 'owl/events/edit';
+                $event->rules['owl/events/<eventId:\d+>'] = 'owl/events/edit';
+                $event->rules['owl/calendars'] = 'owl/calendars/index';
+                $event->rules['owl/calendars/new'] = 'owl/calendars/edit';
+                $event->rules['owl/calendars/<calendarId:\d+>'] = 'owl/calendars/edit';
             }
         );
 

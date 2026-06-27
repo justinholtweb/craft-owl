@@ -9,6 +9,7 @@ use justinholtweb\owl\elements\db\EventQuery;
 use justinholtweb\owl\elements\Event;
 use justinholtweb\owl\models\Calendar;
 use justinholtweb\owl\Owl;
+use justinholtweb\owl\records\OccurrenceRecord;
 
 /**
  * The object returned by `craft.owl` in Twig.
@@ -40,5 +41,13 @@ class OwlVariable
     public function calendars(): array
     {
         return Owl::getInstance()->calendars->getAllCalendars();
+    }
+
+    /**
+     * The number of materialised occurrences for an event.
+     */
+    public function occurrenceCount(Event $event): int
+    {
+        return (int)OccurrenceRecord::find()->where(['eventId' => $event->id])->count();
     }
 }

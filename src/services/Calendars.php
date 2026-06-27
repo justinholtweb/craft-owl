@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace justinholtweb\owl\services;
 
+use Craft;
 use craft\base\Component;
+use InvalidArgumentException;
 use justinholtweb\owl\models\Calendar;
 use justinholtweb\owl\records\CalendarRecord;
 
@@ -64,6 +66,61 @@ class Calendars extends Component
         }
 
         return null;
+    }
+
+    /**
+     * Saves a calendar and its field layout.
+     */
+    public function save(Calendar $calendar): bool
+    {
+        if (!$calendar->validate()) {
+            return false;
+        }
+
+        $record = $calendar->id !== null
+            ? CalendarRecord::findOne($calendar->id)
+            : new CalendarRecord();
+
+        if ($record === null) {
+            throw new InvalidArgumentException("No calendar exists with the id “{$calendar->id}”.");
+        }
+
+        $fieldLayout = $calendar->getFieldLayout();
+        Craft::$app->getFields()->saveLayout($fieldLayout);
+        $calendar->fieldLayoutId = $fieldLayout->id;
+
+        $record->name = $calendar->name;
+        $record->handle = $calendar->handle;
+        $record->color = $calendar->color;
+        $record->fieldLayoutId = $calendar->fieldLayoutId;
+        $record->hasTickets = $calendar->hasTickets;
+        $record->sortOrder = $calendar->sortOrder;
+        $record->save(false);
+
+        $calendar->id = (int)$record->id;
+        $calendar->uid = $record->uid;
+
+        $this->refresh();
+
+        return true;
+    }
+
+    public function deleteCalendarById(int $id): bool
+    {
+        $record = CalendarRecord::findOne($id);
+
+        if ($record === null) {
+            return true;
+        }
+
+        if ($record->fieldLayoutId !== null) {
+            Craft::$app->getFields()->deleteLayoutById((int)$record->fieldLayoutId);
+        }
+
+        $record->delete();
+        $this->refresh();
+
+        return true;
     }
 
     private function createCalendarFromRecord(CalendarRecord $record): Calendar
