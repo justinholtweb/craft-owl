@@ -46,6 +46,7 @@ class TestController extends Controller
             $this->testEventQueryRange($calendar);
             $this->testOccurrencesInRange($calendar, $event);
             $this->testDisabledEventExcludedFromFeed($event);
+            $this->testGraphql();
             $this->testIcsFeed($event);
         } finally {
             $this->cleanup();
@@ -215,6 +216,33 @@ class TestController extends Controller
 
         $event->enabled = true;
         Craft::$app->getElements()->saveElement($event);
+    }
+
+    private function testGraphql(): void
+    {
+        $schema = new \craft\models\GqlSchema([
+            'name' => 'Owl Test',
+            'scope' => ['owl.events:read'],
+        ]);
+
+        // Real GraphQL requests set the active schema from the token; do the same here so the
+        // resolver's schema-scope check sees our granted scope.
+        Craft::$app->getGql()->setActiveSchema($schema);
+
+        $query = '{ owlEventCount(calendar: "owlTest") owlEvents(calendar: "owlTest") { title allDay rrule calendarHandle } }';
+        $result = Craft::$app->getGql()->executeQuery($schema, $query);
+
+        $noErrors = empty($result['errors']);
+        $this->assert($noErrors, 'GraphQL query executes without errors' . ($noErrors ? '' : ': ' . json_encode($result['errors'])));
+
+        $found = false;
+        foreach ($result['data']['owlEvents'] ?? [] as $row) {
+            if (($row['title'] ?? null) === 'TZ + DST Test' && ($row['calendarHandle'] ?? null) === 'owlTest') {
+                $found = true;
+            }
+        }
+        $this->assert($found, 'GraphQL owlEvents (filtered by calendar) returns the event with its calendar handle');
+        $this->assert((int)($result['data']['owlEventCount'] ?? 0) >= 1, 'GraphQL owlEventCount returns at least 1');
     }
 
     private function testIcsFeed(Event $event): void

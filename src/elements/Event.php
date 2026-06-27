@@ -81,6 +81,21 @@ class Event extends Element
         return 'event';
     }
 
+    public static function gqlTypeNameByContext(mixed $context): string
+    {
+        return 'OwlEvent';
+    }
+
+    public function getGqlTypeName(): string
+    {
+        return static::gqlTypeNameByContext($this);
+    }
+
+    public static function gqlScopesByContext(mixed $context): array
+    {
+        return ['owl.events'];
+    }
+
     public static function hasTitles(): bool
     {
         return true;

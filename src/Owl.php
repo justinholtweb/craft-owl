@@ -9,14 +9,20 @@ use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RebuildConfigEvent;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterGqlQueriesEvent;
+use craft\events\RegisterGqlSchemaComponentsEvent;
+use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Elements;
+use craft\services\Gql;
 use craft\services\ProjectConfig;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use justinholtweb\owl\elements\Event;
+use justinholtweb\owl\gql\EventQueries;
+use justinholtweb\owl\gql\interfaces\EventInterface;
 use justinholtweb\owl\models\Settings;
 use justinholtweb\owl\services\Calendars;
 use justinholtweb\owl\services\Events;
@@ -201,6 +207,33 @@ class Owl extends Plugin
                 /** @var CraftVariable $variable */
                 $variable = $event->sender;
                 $variable->attachBehavior('owl', CraftVariableBehavior::class);
+            }
+        );
+
+        // GraphQL.
+        YiiEvent::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_TYPES,
+            function(RegisterGqlTypesEvent $event) {
+                $event->types[] = EventInterface::class;
+            }
+        );
+
+        YiiEvent::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_QUERIES,
+            function(RegisterGqlQueriesEvent $event) {
+                $event->queries = array_merge($event->queries, EventQueries::getQueries());
+            }
+        );
+
+        YiiEvent::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_SCHEMA_COMPONENTS,
+            function(RegisterGqlSchemaComponentsEvent $event) {
+                $event->queries['Owl'] = [
+                    'owl.events:read' => ['label' => Craft::t('owl', 'View Owl events')],
+                ];
             }
         );
 

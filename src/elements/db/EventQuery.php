@@ -28,16 +28,30 @@ class EventQuery extends ElementQuery
     protected array $defaultOrderBy = ['owl_events.startDate' => SORT_ASC];
 
     /**
-     * Filter by calendar handle(s) or {@see \justinholtweb\owl\models\Calendar} id(s).
+     * Filter by calendar handle(s) or {@see \justinholtweb\owl\models\Calendar} id(s). Accepts a
+     * single handle, a list of handles, or numeric ids (mixed lists are fine).
      */
     public function calendar(mixed $value): static
     {
-        if (is_string($value)) {
-            $calendar = Owl::getInstance()->calendars->getCalendarByHandle($value);
-            $this->calendarId = $calendar?->id ?? false;
-        } elseif ($value !== null) {
-            $this->calendarId = $value;
+        if ($value === null) {
+            $this->calendarId = null;
+            return $this;
         }
+
+        $ids = [];
+        foreach ((is_array($value) ? $value : [$value]) as $item) {
+            if (is_numeric($item)) {
+                $ids[] = (int)$item;
+            } else {
+                $calendar = Owl::getInstance()->calendars->getCalendarByHandle((string)$item);
+                if ($calendar !== null) {
+                    $ids[] = $calendar->id;
+                }
+            }
+        }
+
+        // `false` ensures a non-matching handle yields no results rather than all results.
+        $this->calendarId = $ids !== [] ? $ids : false;
 
         return $this;
     }
