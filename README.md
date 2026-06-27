@@ -36,6 +36,32 @@ fast SQL — and per-occurrence ticketing/inventory has a real row to attach to.
 The recurrence engine (`src/recurrence`) is deliberately framework-agnostic and unit-tested in
 isolation, including DST spring-forward/fall-back correctness.
 
+## Front-end
+
+Query events in Twig:
+
+```twig
+{% set upcoming = craft.owl.events
+    .startsAfter(now)
+    .orderBy('startDate ASC')
+    .limit(10)
+    .all() %}
+```
+
+Feed a JS calendar (FullCalendar) from the JSON endpoint, which returns only the occurrences
+overlapping the requested range:
+
+```
+GET /owl/events.json?start=2026-07-01&end=2026-08-01&calendar=concerts
+```
+
+Subscribe to or download ICS:
+
+```
+/owl/calendar/<handle>.ics   # a calendar's subscribable feed
+/owl/event/<id>.ics          # a single event
+```
+
 ## Development
 
 PHP and Composer run inside DDEV:
@@ -43,10 +69,20 @@ PHP and Composer run inside DDEV:
 ```bash
 ddev start
 ddev composer install --no-plugins   # --no-plugins: the craft-plugin installer expects a host app
-ddev exec vendor/bin/pest --testsuite=Unit
+ddev exec vendor/bin/pest --testsuite=Unit   # framework-agnostic unit tests (recurrence, ICS)
 ```
 
-Integration (Feature) tests run against a companion Craft test site via `markhuot/craft-pest`.
+The recurrence engine and ICS builder are framework-agnostic and covered by the Pest unit suite.
+
+The Craft layer (elements, services, queries, occurrence materialisation, timezone/DST storage) is
+covered by an integration harness that runs inside a real Craft install:
+
+```bash
+ddev craft owl/test/run   # exits non-zero on failure
+```
+
+> `markhuot/craft-pest` is not yet compatible with Craft 5.9's Symfony 7 dependencies, so the
+> integration coverage is provided via this console harness rather than Pest feature tests.
 
 ## License
 
