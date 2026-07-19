@@ -9,8 +9,10 @@ use craft\helpers\DateTimeHelper;
 use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use DateTime;
+use DateTimeImmutable;
 use DateTimeZone;
 use justinholtweb\owl\Owl;
+use justinholtweb\owl\recurrence\DisplayInstant;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
@@ -40,12 +42,20 @@ class FeedController extends Controller
 
         $events = [];
         foreach ($rows as $row) {
+            $allDay = (bool)$row['allDay'];
+            $tz = new DateTimeZone((string)($row['timezone'] ?: 'UTC'));
+
+            // FullCalendar expects all-day events as floating date-only strings (the event's local
+            // day), and timed events as absolute ISO-8601 instants.
+            $start = DisplayInstant::forDisplay(new DateTimeImmutable((string)$row['startDate'], $utc), $tz, $allDay);
+            $end = DisplayInstant::forDisplay(new DateTimeImmutable((string)$row['endDate'], $utc), $tz, $allDay);
+
             $events[] = [
                 'id' => (int)$row['eventId'],
                 'title' => (string)$row['title'],
-                'start' => (new DateTime((string)$row['startDate'], $utc))->format('c'),
-                'end' => (new DateTime((string)$row['endDate'], $utc))->format('c'),
-                'allDay' => (bool)$row['allDay'],
+                'start' => $allDay ? $start->format('Y-m-d') : $start->format('c'),
+                'end' => $allDay ? $end->format('Y-m-d') : $end->format('c'),
+                'allDay' => $allDay,
                 'url' => !empty($row['uri']) ? UrlHelper::siteUrl((string)$row['uri']) : null,
                 'color' => $row['color'] ?: null,
             ];

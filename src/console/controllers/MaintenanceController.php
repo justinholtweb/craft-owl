@@ -48,6 +48,7 @@ class MaintenanceController extends Controller
 
         $queueService = Craft::$app->getQueue();
         $count = 0;
+        $failed = 0;
 
         foreach ($events as $event) {
             /** @var Event $event */
@@ -57,7 +58,16 @@ class MaintenanceController extends Controller
                     'siteId' => $event->siteId,
                 ]));
             } else {
-                Owl::getInstance()->occurrences->regenerate($event);
+                try {
+                    Owl::getInstance()->occurrences->regenerate($event);
+                } catch (\Throwable $e) {
+                    // One malformed rule (e.g. an invalid RRULE) must not abort the whole run and
+                    // leave every later event's horizon un-rolled. Log it and keep going.
+                    $failed++;
+                    Craft::error("Owl: failed to regenerate occurrences for event {$event->id}: {$e->getMessage()}", __METHOD__);
+                    $this->stderr("Failed to regenerate event {$event->id}: {$e->getMessage()}\n", Console::FG_RED);
+                    continue;
+                }
             }
 
             $count++;
@@ -65,6 +75,11 @@ class MaintenanceController extends Controller
 
         $verb = $this->queue ? 'Queued regeneration for' : 'Regenerated occurrences for';
         $this->stdout("{$verb} {$count} recurring event(s).\n", Console::FG_GREEN);
+
+        if ($failed > 0) {
+            $this->stdout("Skipped {$failed} event(s) that failed to regenerate (see logs).\n", Console::FG_YELLOW);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
 
         return ExitCode::OK;
     }

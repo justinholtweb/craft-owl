@@ -90,6 +90,7 @@ class Occurrences extends Component
         ?int $siteId = null,
         ?array $calendarIds = null,
         ?int $eventId = null,
+        ?int $limit = null,
     ): array {
         $siteId ??= Craft::$app->getSites()->getCurrentSite()->id;
 
@@ -129,6 +130,10 @@ class Occurrences extends Component
 
         if ($eventId !== null) {
             $query->andWhere(['o.eventId' => $eventId]);
+        }
+
+        if ($limit !== null) {
+            $query->limit($limit);
         }
 
         return $query->all();

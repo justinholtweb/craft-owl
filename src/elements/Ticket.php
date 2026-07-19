@@ -11,6 +11,7 @@ use craft\commerce\models\LineItem;
 use justinholtweb\owl\elements\db\TicketQuery;
 use justinholtweb\owl\Owl;
 use justinholtweb\owl\records\TicketRecord;
+use yii\validators\Validator;
 
 /**
  * A ticket for an event — a Commerce purchasable. One Ticket per (event × ticket type), with its
@@ -94,6 +95,51 @@ class Ticket extends Purchasable
     public function getRemaining(): ?int
     {
         return $this->capacity === null ? null : max(0, $this->capacity - $this->sold);
+    }
+
+    /**
+     * Enforce capacity at the line-item level. {@see getIsAvailable()} is only a boolean gate — it
+     * cannot stop a single cart from requesting a quantity larger than the remaining capacity — so
+     * without this a capacity-limited ticket could be oversold in one order (`hasInventory()` is
+     * false, so Commerce's own stock checks are bypassed). The requested quantity is aggregated
+     * across every line for this ticket in the cart, matching Commerce's own quantity validation.
+     */
+    public function getLineItemRules(LineItem $lineItem): array
+    {
+        $rules = parent::getLineItemRules($lineItem);
+
+        $rules[] = [
+            'qty',
+            function(string $attribute, mixed $params, Validator $validator) use ($lineItem): void {
+                $remaining = $this->getRemaining();
+                if ($remaining === null) {
+                    return;
+                }
+
+                $order = $lineItem->getOrder();
+                if ($order !== null && $order->isCompleted) {
+                    return;
+                }
+
+                $requested = (int)$lineItem->qty;
+                if ($order !== null) {
+                    foreach ($order->getLineItems() as $item) {
+                        if ($item->purchasableId === $this->id && $item->id !== $lineItem->id) {
+                            $requested += (int)$item->qty;
+                        }
+                    }
+                }
+
+                if ($requested > $remaining) {
+                    $validator->addError($lineItem, $attribute, Craft::t('owl', 'Only {num} ticket(s) remaining for “{description}”.', [
+                        'num' => $remaining,
+                        'description' => $this->getDescription(),
+                    ]));
+                }
+            },
+        ];
+
+        return $rules;
     }
 
     public function getSnapshot(): array

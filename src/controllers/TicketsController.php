@@ -49,12 +49,19 @@ class TicketsController extends Controller
         $capacity = $request->getBodyParam('capacity');
         $capacity = ($capacity === '' || $capacity === null) ? null : (int)$capacity;
 
-        Owl::getInstance()->tickets->createTicket(
+        $ticket = Owl::getInstance()->tickets->createTicket(
             $event,
             (string)$request->getBodyParam('ticketName'),
             (float)$request->getBodyParam('price'),
             $capacity,
         );
+
+        if ($ticket->hasErrors()) {
+            $reason = implode(' ', $ticket->getFirstErrors()) ?: Craft::t('owl', 'Please check the ticket details.');
+            Craft::$app->getSession()->setError(Craft::t('owl', 'Couldn’t add ticket: {reason}', ['reason' => $reason]));
+
+            return $this->redirect("owl/events/{$eventId}/tickets");
+        }
 
         Craft::$app->getSession()->setNotice(Craft::t('owl', 'Ticket added.'));
 

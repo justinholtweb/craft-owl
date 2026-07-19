@@ -54,3 +54,24 @@ it('renders all-day occurrences as DATE values', function() {
 
     expect($ics)->toContain('VALUE=DATE');
 });
+
+it('emits all-day dates as floating (no TZID) on the exact date given', function() {
+    // The feed hands the builder floating UTC-midnight dates (see DisplayInstant); a DATE value
+    // must not carry a TZID (RFC 5545) and must render the date it was given, verbatim.
+    $ics = (new IcsBuilder())->build('Holidays', [
+        [
+            'uid' => 'owl-2-2@example.com',
+            'title' => 'All Day',
+            'start' => dt('2026-07-19 00:00'),
+            'end' => dt('2026-07-20 00:00'),
+            'allDay' => true,
+        ],
+    ]);
+
+    expect($ics)
+        ->toContain('DTSTART;VALUE=DATE:20260719')
+        ->toContain('DTEND;VALUE=DATE:20260720')
+        // A DATE value must be floating — no TZID parameter on the DTSTART/DTEND properties.
+        ->not->toContain('DTSTART;TZID')
+        ->not->toContain('DTEND;TZID');
+});

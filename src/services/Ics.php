@@ -11,6 +11,7 @@ use DateTimeZone;
 use justinholtweb\owl\ics\IcsBuilder;
 use justinholtweb\owl\models\Calendar;
 use justinholtweb\owl\Owl;
+use justinholtweb\owl\recurrence\DisplayInstant;
 
 /**
  * Generates ICS feeds for calendars and individual events.
@@ -59,15 +60,22 @@ class Ics extends Component
 
         $events = [];
         foreach ($rows as $row) {
-            $start = new DateTimeImmutable((string)$row['startDate'], $utc);
-            $end = new DateTimeImmutable((string)$row['endDate'], $utc);
+            $allDay = (bool)$row['allDay'];
+            $tz = new DateTimeZone((string)($row['timezone'] ?: 'UTC'));
+
+            // UID is keyed off the absolute instant so it stays stable regardless of all-day
+            // date re-anchoring below.
+            $instant = new DateTimeImmutable((string)$row['startDate'], $utc);
+
+            $start = DisplayInstant::forDisplay($instant, $tz, $allDay);
+            $end = DisplayInstant::forDisplay(new DateTimeImmutable((string)$row['endDate'], $utc), $tz, $allDay);
 
             $events[] = [
-                'uid' => sprintf('owl-%d-%d@%s', $row['eventId'], $start->getTimestamp(), $host),
+                'uid' => sprintf('owl-%d-%d@%s', $row['eventId'], $instant->getTimestamp(), $host),
                 'title' => (string)$row['title'],
                 'start' => $start,
                 'end' => $end,
-                'allDay' => (bool)$row['allDay'],
+                'allDay' => $allDay,
                 'url' => !empty($row['uri']) ? UrlHelper::siteUrl((string)$row['uri']) : null,
             ];
         }

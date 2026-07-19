@@ -1,6 +1,6 @@
 /vendor
-/.ddev/.gitignore
-/.ddev/**/*.example
+# Local DDEV environment — kept out of the repo so it stays a per-developer concern.
+/.ddev
 /composer.lock
 .phpunit.cache
 .phpunit.result.cache

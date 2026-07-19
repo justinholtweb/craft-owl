@@ -36,6 +36,11 @@ class Tickets extends Component
 
     /**
      * Creates and saves a ticket for an event.
+     *
+     * Returns the ticket whether or not the save succeeded; callers must check
+     * {@see Ticket::hasErrors()} (or the boolean-ish `$ticket->id`) before reporting success. A save
+     * can fail on Commerce's unique-SKU constraint or other validation, and silently returning an
+     * unsaved element would make the caller report a phantom "added" ticket.
      */
     public function createTicket(
         Event $event,
@@ -62,6 +67,7 @@ class Tickets extends Component
     {
         $slug = strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $name));
 
-        return sprintf('OWL-%d-%s-%s', $event->id, $slug, strtoupper(substr(StringHelper::UUID(), 0, 4)));
+        // 8 hex chars keeps accidental collisions on the unique-SKU constraint vanishingly unlikely.
+        return sprintf('OWL-%d-%s-%s', $event->id, $slug, strtoupper(substr(StringHelper::UUID(), 0, 8)));
     }
 }

@@ -72,6 +72,11 @@ class OwlVariable
             new DateTime($within),
             null,
             $calendarIds,
+            null,
+            // Bound the query itself — occurrences are ordered by start ascending, so the first
+            // $limit rows are the upcoming ones. Slicing in PHP would first materialise every
+            // occurrence in the window (potentially thousands for a daily rule) just to keep a few.
+            max(0, $limit),
         );
 
         // Expose the stored UTC instants as DateTime objects so Twig's `date` filter localises
@@ -83,6 +88,6 @@ class OwlVariable
         }
         unset($row);
 
-        return array_slice($rows, 0, $limit);
+        return $rows;
     }
 }
