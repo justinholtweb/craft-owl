@@ -11,6 +11,7 @@ use craft\web\Controller;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use justinholtweb\owl\events\FeedItemsEvent;
 use justinholtweb\owl\Owl;
 use justinholtweb\owl\recurrence\DisplayInstant;
 use yii\web\NotFoundHttpException;
@@ -21,6 +22,12 @@ use yii\web\Response;
  */
 class FeedController extends Controller
 {
+    /**
+     * @event FeedItemsEvent Fired after the calendar feed is built, so other code can add
+     * items to it. The endpoint is anonymous — handlers must gate anything non-public.
+     */
+    public const EVENT_DEFINE_FEED_ITEMS = 'defineFeedItems';
+
     protected array|bool|int $allowAnonymous = true;
 
     /**
@@ -61,7 +68,19 @@ class FeedController extends Controller
             ];
         }
 
-        return $this->asJson($events);
+        // Let other code contribute to the feed — e.g. a host bundle adding appointment
+        // bookings so staff see one calendar. NOTE: this endpoint is anonymous, so a handler
+        // adding anything non-public must check permissions itself.
+        $event = new FeedItemsEvent([
+            'rangeStart' => $rangeStart,
+            'rangeEnd' => $rangeEnd,
+            'calendarIds' => $calendarIds ?? [],
+            'items' => $events,
+        ]);
+
+        $this->trigger(self::EVENT_DEFINE_FEED_ITEMS, $event);
+
+        return $this->asJson($event->items);
     }
 
     /**

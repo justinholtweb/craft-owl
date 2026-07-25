@@ -6,6 +6,7 @@ namespace justinholtweb\owl\services;
 
 use Craft;
 use craft\base\Component;
+use craft\db\Query;
 use craft\helpers\StringHelper;
 use justinholtweb\owl\elements\Event;
 use justinholtweb\owl\elements\Ticket;
@@ -61,6 +62,63 @@ class Tickets extends Component
         Craft::$app->getElements()->saveElement($ticket);
 
         return $ticket;
+    }
+
+    /**
+     * Every ticket someone has actually bought, newest order first.
+     *
+     * Owl has no attendee table: a registration *is* a completed Commerce order containing a
+     * ticket line item, and the line item's snapshot is what survives the event being edited
+     * or deleted. Read straight from the order tables rather than through Commerce's element
+     * queries — one query instead of one per order, and it doesn't need Commerce's classes to
+     * be loadable.
+     *
+     * Matches on the order's email rather than its customer, because guest checkout is the
+     * common case for event tickets and there's no user to match on.
+     *
+     * @return array<array{
+     *     orderId: int, orderNumber: string, reference: ?string, dateOrdered: ?string,
+     *     eventId: ?int, eventTitle: string, ticketName: string, qty: int, total: string,
+     * }>
+     */
+    public function registrationsForEmail(string $email): array
+    {
+        if ($email === '' || !Craft::$app->getPlugins()->isPluginInstalled('commerce')) {
+            return [];
+        }
+
+        $rows = (new Query())
+            ->select([
+                'o.id AS orderId', 'o.number', 'o.reference', 'o.dateOrdered',
+                'li.purchasableId', 'li.description', 'li.qty', 'li.total', 'li.snapshot',
+            ])
+            ->from(['li' => '{{%commerce_lineitems}}'])
+            ->innerJoin(['o' => '{{%commerce_orders}}'], '[[o.id]] = [[li.orderId]]')
+            ->innerJoin(['t' => '{{%owl_tickets}}'], '[[t.id]] = [[li.purchasableId]]')
+            ->where(['o.isCompleted' => true])
+            ->andWhere(['o.email' => $email])
+            ->orderBy(['o.dateOrdered' => SORT_DESC])
+            ->all();
+
+        return array_map(static function(array $row): array {
+            // The snapshot is frozen at purchase time, so it still names the event even if
+            // the event has since been renamed or deleted. Fall back to the line item's own
+            // description, which Commerce always has.
+            $snapshot = $row['snapshot'] ? json_decode((string)$row['snapshot'], true) : null;
+            $snapshot = is_array($snapshot) ? $snapshot : [];
+
+            return [
+                'orderId' => (int)$row['orderId'],
+                'orderNumber' => (string)$row['number'],
+                'reference' => $row['reference'] !== null ? (string)$row['reference'] : null,
+                'dateOrdered' => $row['dateOrdered'] !== null ? (string)$row['dateOrdered'] : null,
+                'eventId' => isset($snapshot['eventId']) ? (int)$snapshot['eventId'] : null,
+                'eventTitle' => (string)($snapshot['eventTitle'] ?? $row['description'] ?? ''),
+                'ticketName' => (string)($snapshot['ticketName'] ?? ''),
+                'qty' => (int)$row['qty'],
+                'total' => (string)$row['total'],
+            ];
+        }, $rows);
     }
 
     private function generateSku(Event $event, string $name): string

@@ -55,6 +55,16 @@ class Owl extends Plugin
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
 
+    /**
+     * When true, Owl is running as an internal module mounted inside a host bundle plugin
+     * rather than installed as a standalone plugin. In that mode Owl boots its feature
+     * wiring but leaves control-panel "chrome" (nav, settings screen, its own permission
+     * heading) to the host, which unifies it with the other bundled plugins.
+     *
+     * Default false → standalone behavior is unchanged.
+     */
+    public bool $mountedUnderShowtime = false;
+
     public static function editions(): array
     {
         return [
@@ -81,8 +91,65 @@ class Owl extends Plugin
     {
         parent::init();
 
+        $this->bootFeatures();
+
+        if (!$this->mountedUnderShowtime) {
+            $this->bootChrome();
+        }
+    }
+
+    /**
+     * Functionality that must run in BOTH modes (standalone and mounted under a host).
+     */
+    private function bootFeatures(): void
+    {
         $this->attachEventHandlers();
         $this->registerProjectConfigHandlers();
+    }
+
+    /**
+     * Control-panel chrome that only applies when Owl is installed as its own plugin.
+     *
+     * Owl's nav and settings page are served via hasCpSection/hasCpSettings +
+     * getCpNavItem()/settingsHtml(), which Craft only invokes for an installed plugin — so
+     * there is nothing to unwire here. Kept so all bundled plugins share one mount shape.
+     */
+    private function bootChrome(): void
+    {
+    }
+
+    /**
+     * The permissions Owl defines, keyed by permission name.
+     *
+     * Exposed so a host bundle can list them under its own single heading rather than
+     * showing one heading per bundled plugin. The keys are the contract — controllers, nav
+     * items and user groups all reference them — so they never change between modes.
+     */
+    public static function permissionDefinitions(): array
+    {
+        return [
+            'owl-manageEvents' => ['label' => Craft::t('owl', 'Manage events')],
+            'owl-manageCalendars' => ['label' => Craft::t('owl', 'Manage calendars')],
+        ];
+    }
+
+    /**
+     * Refuse to install alongside a host bundle that already includes Owl.
+     *
+     * Both would register the Event element type and share the `owl_*` tables, and
+     * uninstalling either would then drop the other's data. Skipped when the host is
+     * installing Owl *as* a mounted module — that call is this method running with
+     * $mountedUnderShowtime already true.
+     */
+    protected function beforeInstall(): void
+    {
+        if (!$this->mountedUnderShowtime && Craft::$app->getPlugins()->isPluginInstalled('showtime')) {
+            throw new \yii\base\Exception(
+                'Owl is already included in the Showtime bundle, which is installed on this site. ' .
+                'Installing it separately would register a second Event element type and collide ' .
+                'on the owl_* tables. Use Showtime’s bundled copy instead.'
+            );
+        }
     }
 
     /**
@@ -261,20 +328,20 @@ class Owl extends Plugin
             }
         );
 
-        // User-group permissions.
-        YiiEvent::on(
-            UserPermissions::class,
-            UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function(RegisterUserPermissionsEvent $event) {
-                $event->permissions[] = [
-                    'heading' => 'Owl',
-                    'permissions' => [
-                        'owl-manageEvents' => ['label' => Craft::t('owl', 'Manage events')],
-                        'owl-manageCalendars' => ['label' => Craft::t('owl', 'Manage calendars')],
-                    ],
-                ];
-            }
-        );
+        // User-group permissions. Mounted, the host registers these under one combined
+        // heading alongside the other bundled plugins'.
+        if (!$this->mountedUnderShowtime) {
+            YiiEvent::on(
+                UserPermissions::class,
+                UserPermissions::EVENT_REGISTER_PERMISSIONS,
+                function(RegisterUserPermissionsEvent $event) {
+                    $event->permissions[] = [
+                        'heading' => 'Owl',
+                        'permissions' => static::permissionDefinitions(),
+                    ];
+                }
+            );
+        }
 
         // Commerce ticketing (Pro) boots lazily so the plugin degrades to calendar-only.
         if ($this->commerceAvailable()) {
