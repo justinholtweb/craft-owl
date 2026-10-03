@@ -1,7 +1,7 @@
 {
     "name": "justinholtweb/craft-owl",
     "description": "A comprehensive events and calendar plugin for Craft CMS 5 with recurrence, multisite, ICS feeds, and Commerce ticketing.",
-    "version": "5.2.0",
+    "version": "5.2.1",
     "type": "craft-plugin",
     "license": "proprietary",
     "homepage": "https://craft-owl.com",
@@ -23,7 +23,8 @@
         "craftcms/ecs": "dev-main",
         "craftcms/phpstan": "dev-main",
         "craftcms/rector": "dev-main",
-        "pestphp/pest": "^3.5"
+        "pestphp/pest": "^3.5",
+        "phpstan/phpstan": "^1.12 || ^2.2"
     },
     "suggest": {
         "craftcms/commerce": "Required for the Pro edition's ticketing features (^5.0)."

@@ -1,5 +1,27 @@
 # Release Notes for Owl
 
+## 5.2.1 - 2026-10-03
+
+### Security
+
+- **The ICS feeds can be filtered.** `Ics::EVENT_DEFINE_ICS_ROWS` lets a site or a host bundle
+  remove occurrences before a calendar or event feed is built — the JSON feed already had
+  `EVENT_DEFINE_FEED_ITEMS`, but the ICS feeds, also anonymous, had nothing, so an event hidden
+  from some visitors still appeared in every calendar app subscribed to its calendar. A single
+  event's feed answers 404 when every occurrence is filtered out, rather than an empty feed with
+  the event's title in it.
+- **`events.json` answers for at most 400 days and 2,000 occurrences.** It accepted any range —
+  a request with none returned two years, and one for a decade returned every occurrence on the
+  site, from an anonymous endpoint.
+- **A calendar's colour must be a colour.** It was any string, drawn as an inline style in the
+  control panel.
+
+### Fixed
+
+- **The events index showed no event names.** `defineDefaultTableAttributes()` omitted `title`, so
+  out of the box the screen listed a calendar name and two dates per row and never said which event
+  each row was. `title` is available in the column picker, but the default has to include it.
+
 ## 5.2.0 - 2026-07-25
 
 ### Added
